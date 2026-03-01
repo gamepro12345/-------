@@ -104,15 +104,34 @@ class Bullet:
 
     def update(self):
         if self.spiral:
-            # increase radius
-            self.radius += self.radial
-            # adjust angle so that tangential speed ~= constant
-            # angvel_effective = tangential_speed / radius
-            angvel_eff = self.tangential_speed / max(0.1, self.radius)
-            self.angle += angvel_eff
+            # compute next polar values
+            next_radius = self.radius + self.radial
+            angvel_eff = self.tangential_speed / max(0.1, next_radius)
+            next_angle = self.angle + angvel_eff
             ox, oy = self.origin
-            self.x = ox + math.cos(self.angle) * self.radius
-            self.y = oy + math.sin(self.angle) * self.radius
+            tx = ox + math.cos(next_angle) * next_radius
+            ty = oy + math.sin(next_angle) * next_radius
+
+            # desired movement vector
+            dx = tx - self.x
+            dy = ty - self.y
+            dist = math.hypot(dx, dy)
+
+            # limit per-frame movement to initial max speed to avoid sudden acceleration
+            max_speed = math.hypot(self.tangential_speed, self.radial)
+            if dist > max_speed and dist > 0:
+                scale = max_speed / dist
+                self.x += dx * scale
+                self.y += dy * scale
+            else:
+                self.x = tx
+                self.y = ty
+
+            # update polar coords from new position
+            rx = self.x - ox
+            ry = self.y - oy
+            self.radius = math.hypot(rx, ry)
+            self.angle = math.atan2(ry, rx)
         else:
             self.x += self.vx
             self.y += self.vy
