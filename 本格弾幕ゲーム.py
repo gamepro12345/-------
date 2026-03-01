@@ -237,8 +237,8 @@ class Game:
         if self.title.start:
             self.player.update()
             # 敵生成（ランダム）
-            # スポーン頻度と上限を下げる
-            if random.random() < 0.005 and len(self.enemies) < 40:
+            # 画面上の敵を1体だけに制限
+            if random.random() < 0.005 and len(self.enemies) < 1:
                 ex = random.randint(0, 160 - 8)
                 ey = random.randint(-40, 20)
                 self.enemies.append(Enemy(ex, ey))
