@@ -154,12 +154,17 @@ class Enemy:
         self.w = 8
         self.h = 8
         self.speed = 0.3
+        self.turned = False
         # 次に弾を撃つまでのフレーム数（ランダム）
         self.shoot_timer = random.randint(30, 120)
 
     def update(self):
         # 少し下へ移動する（動きが欲しい場合）
         self.y += self.speed
+        # 画面半分に達したらUターン（上方向へ移動）
+        if (not self.turned) and self.y >= 120:
+            self.speed = -abs(self.speed)
+            self.turned = True
         # カウントダウン
         self.shoot_timer -= 1
 
@@ -276,8 +281,8 @@ class Game:
                     alive_bullets.append(b)
                 self.bullets = alive_bullets
             
-            # 敵は画面下に出たら削除
-            self.enemies = [e for e in self.enemies if e.y < 260]
+            # 敵は画面外（上 or 下）に出たら削除
+            self.enemies = [e for e in self.enemies if -80 < e.y < 260]
     
     def draw(self):
         pyxel.cls(0)
