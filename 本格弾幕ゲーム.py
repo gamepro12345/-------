@@ -21,6 +21,10 @@ class Player:
         # HP
         self.hp = 5
         self.max_hp = 5
+        # invincibility (i-frames)
+        self.invincible = False
+        self.invincible_timer = 0
+        self.invincible_duration = 60  # frames (at 30fps = 2 seconds)
 
     def is_wall(self, x, y):
         # 画面外チェック
@@ -51,6 +55,12 @@ class Player:
         return True
 
     def update(self):
+        # invincibility timer update
+        if self.invincible:
+            self.invincible_timer -= 1
+            if self.invincible_timer <= 0:
+                self.invincible = False
+
         # 矢印キーで移動（当たり判定付き）
         if pyxel.btn(pyxel.KEY_LEFT):
             new_x = max(0, self.x - self.speed)
@@ -73,8 +83,18 @@ class Player:
                 self.y = new_y
 
     def draw(self):
-        # draw sprite from image bank 2 (0,0)-(8,8), black(0) as transparent
+        # blink while invincible
+        if getattr(self, 'invincible', False):
+            # 半周期で点滅
+            if (pyxel.frame_count // 5) % 2 == 0:
+                return
+
+        # draw sprite from image bank 2 (0,0)-(16,16), black(0) as transparent
         pyxel.blt(self.x, self.y, self.img, self.u, self.v, self.w_img, self.h_img, self.colkey)
+
+    def start_invincible(self, duration=None):
+        self.invincible = True
+        self.invincible_timer = duration if duration is not None else self.invincible_duration
 
 
 class Bullet:
@@ -199,7 +219,7 @@ class Title:
 
 class Game:
     def __init__(self):
-        pyxel.init(160, 240, title="Bullet Hell", fps=60)
+        pyxel.init(160, 240, title="Bullet Hell", fps=30)
         pyxel.load("myedit.pyxres")
         self.title = Title()
         self.player = Player()
@@ -269,13 +289,18 @@ class Game:
 
                     # 衝突判定（矩形重なり）
                     hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
-                    if hit and not self.title.gameover:
-                        # ダメージ処理
-                        self.player.hp -= 1
-                        if self.player.hp <= 0:
-                            self.player.hp = 0
-                            self.title.gameover = True
-                        # 弾は消える（当たったのでaliveにしない）
+                    if hit:
+                        # 弾は当たったら消える
+                        if not self.title.gameover and not getattr(self.player, 'invincible', False):
+                            # ダメージ処理（無敵でなければ）
+                            self.player.hp -= 1
+                            if self.player.hp <= 0:
+                                self.player.hp = 0
+                                self.title.gameover = True
+                            else:
+                                # 無敵時間開始
+                                self.player.start_invincible()
+                        # 当たった弾は消える（aliveに追加しない）
                         continue
 
                     alive_bullets.append(b)
