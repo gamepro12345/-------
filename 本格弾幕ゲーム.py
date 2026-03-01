@@ -8,60 +8,19 @@ class Player:
         self.height = 8
         self.speed = 2
     
-    def can_move(self, new_x, new_y):
-        """指定位置に移動できるか判定（灰色のタイルをチェック）"""
-        # プレイヤーの複数地点でチェック（タイル単位で）
-        # タイルサイズが8x8と仮定
-        tile_size = 8
-        
-        check_points = [
-            (new_x, new_y),
-            (new_x + self.width - 1, new_y),
-            (new_x, new_y + self.height - 1),
-            (new_x + self.width - 1, new_y + self.height - 1),
-            (new_x + self.width // 2, new_y + self.height // 2)
-        ]
-        
-        for px, py in check_points:
-            # 画面外チェック
-            if px < 0 or px >= 160 or py < 0 or py >= 240:
-                continue
-            
-            # ピクセル座標をタイル座標に変換
-            tx = px // tile_size
-            ty = py // tile_size
-            
-            # マップ（番号1）のタイル情報を取得
-            tile = pyxel.mget(tx, ty, 1)  # マップ1から取得
-            
-            # 灰色タイル（タイル番号が0以外で灰色の場合）をチェック
-            # tile < 0の場合は当たり判定がない背景
-            if tile > 0:  # タイル番号が1以上なら当たり判定あり（灰色）
-                return False
-        
-        return True
-    
     def update(self):
-        # 矢印キーで移動（当たり判定付き）
+        # 矢印キーで移動
         if pyxel.btn(pyxel.KEY_LEFT):
-            new_x = max(0, self.x - self.speed)
-            if self.can_move(new_x, self.y):
-                self.x = new_x
+            self.x = max(0, self.x - self.speed)
         
         if pyxel.btn(pyxel.KEY_RIGHT):
-            new_x = min(160 - self.width, self.x + self.speed)
-            if self.can_move(new_x, self.y):
-                self.x = new_x
+            self.x = min(160 - self.width, self.x + self.speed)
         
         if pyxel.btn(pyxel.KEY_UP):
-            new_y = max(0, self.y - self.speed)
-            if self.can_move(self.x, new_y):
-                self.y = new_y
+            self.y = max(0, self.y - self.speed)
         
         if pyxel.btn(pyxel.KEY_DOWN):
-            new_y = min(240 - self.height, self.y + self.speed)
-            if self.can_move(self.x, new_y):
-                self.y = new_y
+            self.y = min(240 - self.height, self.y + self.speed)
     
     def draw(self):
         pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
