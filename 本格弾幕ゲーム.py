@@ -174,8 +174,8 @@ class Game:
         if self.title.start:
             self.player.update()
             # 敵生成（ランダム）
-            # 毎フレーム0.02の確率でスポーン（調整可）
-            if random.random() < 0.02 and len(self.enemies) < 120:
+            # スポーン頻度と上限を下げる
+            if random.random() < 0.005 and len(self.enemies) < 40:
                 ex = random.randint(0, 160 - 8)
                 ey = random.randint(-40, 20)
                 self.enemies.append(Enemy(ex, ey))
@@ -184,18 +184,23 @@ class Game:
             for e in self.enemies:
                 e.update()
                 if e.can_shoot():
-                    # らせん弾を生成（サイズ大きめ）
+                    # 敵が一度に25発のらせん弾を放つ（大きさ固定5）
                     bx = e.x + e.w / 2
                     by = e.y + e.h / 2
                     origin = (bx, by)
-                    angle = random.uniform(0, 2 * math.pi)
-                    angvel = random.uniform(-0.15, 0.15)
-                    radial = random.uniform(0.4, 1.2)
-                    size = random.randint(2, 5)
-                    self.bullets.append(
-                        Bullet(bx, by, color=8, size=size, spiral=True,
-                               origin=origin, angle=angle, angvel=angvel, radius=0.0, radial=radial)
-                    )
+                    base_angle = random.uniform(0, 2 * math.pi)
+                    angvel = random.uniform(-0.08, 0.08)
+                    radial = 0.6
+                    count = 25
+                    for i in range(count):
+                        angle = base_angle + (2 * math.pi * i) / count
+                        # 少し個体差を入れるために角速度はわずかに変える
+                        avel = angvel * random.uniform(0.8, 1.2)
+                        # 初期半径を小さめにして外側へ伸ばす
+                        self.bullets.append(
+                            Bullet(bx, by, color=8, size=5, spiral=True,
+                                   origin=origin, angle=angle, angvel=avel, radius=2.0, radial=radial)
+                        )
                     e.reset_shoot_timer()
 
             # 弾更新・削除（画面外）
