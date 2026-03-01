@@ -7,20 +7,61 @@ class Player:
         self.width = 8
         self.height = 8
         self.speed = 2
+        self.tile_size = 8  # タイルサイズ
+    
+    def is_wall(self, x, y):
+        # 画面外チェック
+        if x < 0 or x >= 160 or y < 0 or y >= 240:
+            return True
+
+    # タイル座標へ変換（1タイル=8px）
+        tile_x = x // self.tile_size
+        tile_y = y // self.tile_size
+
+    # マップ1からタイル番号取得
+        tile = pyxel.tilemap(1).pget(tile_x, tile_y)
+
+    # (2,0) のタイルなら壁
+        return tile == (2, 0)
+    
+    def can_move(self, new_x, new_y):
+        """指定位置に移動できるか判定"""
+        # プレイヤーの複数地点をチェック
+        check_points = [
+            (new_x, new_y),
+            (new_x + self.width - 1, new_y),
+            (new_x, new_y + self.height - 1),
+            (new_x + self.width - 1, new_y + self.height - 1),
+            (new_x + self.width // 2, new_y + self.height // 2)
+        ]
+        
+        for px, py in check_points:
+            if self.is_wall(px, py):
+                return False
+        
+        return True
     
     def update(self):
-        # 矢印キーで移動
+        # 矢印キーで移動（当たり判定付き）
         if pyxel.btn(pyxel.KEY_LEFT):
-            self.x = max(0, self.x - self.speed)
+            new_x = max(0, self.x - self.speed)
+            if self.can_move(new_x, self.y):
+                self.x = new_x
         
         if pyxel.btn(pyxel.KEY_RIGHT):
-            self.x = min(160 - self.width, self.x + self.speed)
+            new_x = min(160 - self.width, self.x + self.speed)
+            if self.can_move(new_x, self.y):
+                self.x = new_x
         
         if pyxel.btn(pyxel.KEY_UP):
-            self.y = max(0, self.y - self.speed)
+            new_y = max(0, self.y - self.speed)
+            if self.can_move(self.x, new_y):
+                self.y = new_y
         
         if pyxel.btn(pyxel.KEY_DOWN):
-            self.y = min(240 - self.height, self.y + self.speed)
+            new_y = min(240 - self.height, self.y + self.speed)
+            if self.can_move(self.x, new_y):
+                self.y = new_y
     
     def draw(self):
         pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
