@@ -18,7 +18,7 @@ class Title:
             pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示
             # タイトルを大きく黄色で表示（複数行で拡大効果）
             pyxel.text(20, 50, self.title, pyxel.COLOR_YELLOW)
-            pyxel.text(30, 100, "Enterキーでスタート", pyxel.COLOR_WHITE)
+            pyxel.text(60, 100, "Push Enter!", pyxel.COLOR_WHITE)
 
 class Game:
     def __init__(self):
@@ -35,7 +35,12 @@ class Game:
     
     def draw(self):
         pyxel.cls(0)
-        pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示
+        # ゲーム開始前はマップ0、開始後はマップ1を表示
+        if self.title.start:
+            pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
+        else:
+            pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
+        
         self.title.draw()
 
 if __name__ == "__main__":
