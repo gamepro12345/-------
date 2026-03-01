@@ -7,17 +7,20 @@ class Player:
     def __init__(self):
         self.x = 80  # 画面中央（160/2 = 80）
         self.y = 200  # 画面下部
-        self.width = 8
-        self.height = 8
+        self.width = 16
+        self.height = 16
         self.speed = 2
         self.tile_size = 8  # タイルサイズ
         # sprite from pyxel editor
         self.img = 2
         self.u = 0
         self.v = 0
-        self.w_img = 8
-        self.h_img = 8
+        self.w_img = 16
+        self.h_img = 16
         self.colkey = 0  # black as transparent
+        # HP
+        self.hp = 5
+        self.max_hp = 5
 
     def is_wall(self, x, y):
         # 画面外チェック
@@ -211,13 +214,40 @@ class Game:
                         )
                     e.reset_shoot_timer()
 
-            # 弾更新・削除（画面外）
-            alive_bullets = []
-            for b in self.bullets:
-                b.update()
-                if 0 <= b.x < 160 and 0 <= b.y < 240:
+                # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
+                alive_bullets = []
+                for b in self.bullets:
+                    b.update()
+                    # 画面外チェック
+                    if not (0 <= b.x < 160 and 0 <= b.y < 240):
+                        continue
+
+                    # 弾の矩形（中心ベース）を計算
+                    s = max(1, int(getattr(b, 'size', 1)))
+                    bx0 = b.x - s / 2
+                    by0 = b.y - s / 2
+                    bx1 = bx0 + s
+                    by1 = by0 + s
+
+                    # プレイヤー矩形
+                    px0 = self.player.x
+                    py0 = self.player.y
+                    px1 = px0 + self.player.width
+                    py1 = py0 + self.player.height
+
+                    # 衝突判定（矩形重なり）
+                    hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
+                    if hit and not self.title.gameover:
+                        # ダメージ処理
+                        self.player.hp -= 1
+                        if self.player.hp <= 0:
+                            self.player.hp = 0
+                            self.title.gameover = True
+                        # 弾は消える（当たったのでaliveにしない）
+                        continue
+
                     alive_bullets.append(b)
-            self.bullets = alive_bullets
+                self.bullets = alive_bullets
             
             # 敵は画面下に出たら削除
             self.enemies = [e for e in self.enemies if e.y < 260]
@@ -234,6 +264,11 @@ class Game:
                 b.draw()
             # プレイヤーを描画（最後に）
             self.player.draw()
+            # HP表示
+            pyxel.text(4, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
+            # Game Over 表示
+            if self.title.gameover:
+                pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
         else:
             pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
         
