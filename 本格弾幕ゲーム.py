@@ -200,8 +200,8 @@ class Game:
                     by = e.y + e.h / 2
                     origin = (bx, by)
                     base_angle = random.uniform(0, 2 * math.pi)
-                    angvel = random.uniform(-0.08, 0.08)
-                    radial = 0.6
+                    angvel = random.uniform(-0.04, 0.04)
+                    radial = 0.3
                     count = 25
                     for i in range(count):
                         angle = base_angle + (2 * math.pi * i) / count
