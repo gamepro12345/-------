@@ -11,6 +11,13 @@ class Player:
         self.height = 8
         self.speed = 2
         self.tile_size = 8  # タイルサイズ
+        # sprite from pyxel editor
+        self.img = 2
+        self.u = 0
+        self.v = 0
+        self.w_img = 8
+        self.h_img = 8
+        self.colkey = 0  # black as transparent
 
     def is_wall(self, x, y):
         # 画面外チェック
@@ -63,7 +70,8 @@ class Player:
                 self.y = new_y
 
     def draw(self):
-        pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
+        # draw sprite from image bank 2 (0,0)-(8,8), black(0) as transparent
+        pyxel.blt(self.x, self.y, self.img, self.u, self.v, self.w_img, self.h_img, self.colkey)
 
 
 class Bullet:
