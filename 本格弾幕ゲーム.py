@@ -1,21 +1,48 @@
 import pyxel
 import random
+import math
 
 class Player:
-    def __init__(self):
-        self.x = 80  # 画面中央（160/2 = 80）
-        self.y = 200  # 画面下部
-        self.width = 8
-        self.height = 8
-        self.speed = 2
-        self.tile_size = 8  # タイルサイズ
-    
-    def is_wall(self, x, y):
-        # 画面外チェック
-        if x < 0 or x >= 160 or y < 0 or y >= 240:
-            return True
+    def __init__(self, x, y, vx=0, vy=0, color=7, size=2,
+                 spiral=False, origin=None, angle=0.0, angvel=0.0, radius=0.0, radial=0.0):
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.color = color
+        self.size = size
 
-    # タイル座標へ変換（1タイル=8px）
+        # spiral motion
+        self.spiral = spiral
+        if origin is None:
+            self.origin = (x, y)
+        else:
+            self.origin = origin
+        self.angle = angle
+        self.angvel = angvel
+        self.radius = radius
+        self.radial = radial
+
+    def update(self):
+        if self.spiral:
+            self.angle += self.angvel
+            self.radius += self.radial
+            ox, oy = self.origin
+            self.x = ox + math.cos(self.angle) * self.radius
+            self.y = oy + math.sin(self.angle) * self.radius
+        else:
+            self.x += self.vx
+            self.y += self.vy
+
+    def draw(self):
+        # 四角で大きさを表現（中心合わせ）
+        s = int(self.size)
+        px = int(self.x) - s // 2
+        py = int(self.y) - s // 2
+        if s <= 1:
+            pyxel.pset(int(self.x), int(self.y), self.color)
+        else:
+            pyxel.rect(px, py, s, s, self.color)
         tile_x = x // self.tile_size
         tile_y = y // self.tile_size
 
