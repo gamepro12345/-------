@@ -2,8 +2,72 @@ import pyxel
 import random
 import math
 
+
 class Player:
-    def __init__(self, x, y, vx=0, vy=0, color=7, size=2,
+    def __init__(self):
+        self.x = 80  # 画面中央（160/2 = 80）
+        self.y = 200  # 画面下部
+        self.width = 8
+        self.height = 8
+        self.speed = 2
+        self.tile_size = 8  # タイルサイズ
+
+    def is_wall(self, x, y):
+        # 画面外チェック
+        if x < 0 or x >= 160 or y < 0 or y >= 240:
+            return True
+
+        # ピクセルの色を取得
+        color = pyxel.pget(x, y)
+
+        # 灰色（色番号2）に当たったら壁
+        return color == 2
+
+    def can_move(self, new_x, new_y):
+        """指定位置に移動できるか判定"""
+        # プレイヤーの複数地点をチェック
+        check_points = [
+            (new_x, new_y),
+            (new_x + self.width - 1, new_y),
+            (new_x, new_y + self.height - 1),
+            (new_x + self.width - 1, new_y + self.height - 1),
+            (new_x + self.width // 2, new_y + self.height // 2)
+        ]
+
+        for px, py in check_points:
+            if self.is_wall(px, py):
+                return False
+
+        return True
+
+    def update(self):
+        # 矢印キーで移動（当たり判定付き）
+        if pyxel.btn(pyxel.KEY_LEFT):
+            new_x = max(0, self.x - self.speed)
+            if self.can_move(new_x, self.y):
+                self.x = new_x
+
+        if pyxel.btn(pyxel.KEY_RIGHT):
+            new_x = min(160 - self.width, self.x + self.speed)
+            if self.can_move(new_x, self.y):
+                self.x = new_x
+
+        if pyxel.btn(pyxel.KEY_UP):
+            new_y = max(0, self.y - self.speed)
+            if self.can_move(self.x, new_y):
+                self.y = new_y
+
+        if pyxel.btn(pyxel.KEY_DOWN):
+            new_y = min(240 - self.height, self.y + self.speed)
+            if self.can_move(self.x, new_y):
+                self.y = new_y
+
+    def draw(self):
+        pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
+
+
+class Bullet:
+    def __init__(self, x, y, vx=0, vy=0, color=7, size=3,
                  spiral=False, origin=None, angle=0.0, angvel=0.0, radius=0.0, radial=0.0):
         self.x = x
         self.y = y
@@ -43,72 +107,6 @@ class Player:
             pyxel.pset(int(self.x), int(self.y), self.color)
         else:
             pyxel.rect(px, py, s, s, self.color)
-        tile_x = x // self.tile_size
-        tile_y = y // self.tile_size
-
-    # マップ1からタイル番号取得
-        tile = pyxel.tilemap(1).pget(tile_x, tile_y)
-
-    # (2,0) のタイルなら壁
-        return tile == (2, 0)
-    
-    def can_move(self, new_x, new_y):
-        """指定位置に移動できるか判定"""
-        # プレイヤーの複数地点をチェック
-        check_points = [
-            (new_x, new_y),
-            (new_x + self.width - 1, new_y),
-            (new_x, new_y + self.height - 1),
-            (new_x + self.width - 1, new_y + self.height - 1),
-            (new_x + self.width // 2, new_y + self.height // 2)
-        ]
-        
-        for px, py in check_points:
-            if self.is_wall(px, py):
-                return False
-        
-        return True
-    
-    def update(self):
-        # 矢印キーで移動（当たり判定付き）
-        if pyxel.btn(pyxel.KEY_LEFT):
-            new_x = max(0, self.x - self.speed)
-            if self.can_move(new_x, self.y):
-                self.x = new_x
-        
-        if pyxel.btn(pyxel.KEY_RIGHT):
-            new_x = min(160 - self.width, self.x + self.speed)
-            if self.can_move(new_x, self.y):
-                self.x = new_x
-        
-        if pyxel.btn(pyxel.KEY_UP):
-            new_y = max(0, self.y - self.speed)
-            if self.can_move(self.x, new_y):
-                self.y = new_y
-        
-        if pyxel.btn(pyxel.KEY_DOWN):
-            new_y = min(240 - self.height, self.y + self.speed)
-            if self.can_move(self.x, new_y):
-                self.y = new_y
-    
-    def draw(self):
-        pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
-
-
-class Bullet:
-    def __init__(self, x, y, vx, vy, color=7):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.color = color
-
-    def update(self):
-        self.x += self.vx
-        self.y += self.vy
-
-    def draw(self):
-        # 小さな点で描画
-        pyxel.pset(int(self.x), int(self.y), self.color)
 
 
 class Enemy:
@@ -186,12 +184,18 @@ class Game:
             for e in self.enemies:
                 e.update()
                 if e.can_shoot():
-                    # 弾の初速度をランダム化（下向き中心）
-                    vx = random.uniform(-0.6, 0.6)
-                    vy = random.uniform(1.0, 2.0)
+                    # らせん弾を生成（サイズ大きめ）
                     bx = e.x + e.w / 2
-                    by = e.y + e.h
-                    self.bullets.append(Bullet(bx, by, vx, vy, color=8))
+                    by = e.y + e.h / 2
+                    origin = (bx, by)
+                    angle = random.uniform(0, 2 * math.pi)
+                    angvel = random.uniform(-0.15, 0.15)
+                    radial = random.uniform(0.4, 1.2)
+                    size = random.randint(2, 5)
+                    self.bullets.append(
+                        Bullet(bx, by, color=8, size=size, spiral=True,
+                               origin=origin, angle=angle, angvel=angvel, radius=0.0, radial=radial)
+                    )
                     e.reset_shoot_timer()
 
             # 弾更新・削除（画面外）
