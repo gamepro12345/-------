@@ -1,4 +1,5 @@
 import pyxel
+import random
 
 class Player:
     def __init__(self):
@@ -66,6 +67,48 @@ class Player:
     def draw(self):
         pyxel.rect(self.x, self.y, self.width, self.height, pyxel.COLOR_WHITE)
 
+
+class Bullet:
+    def __init__(self, x, y, vx, vy, color=7):
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.color = color
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+
+    def draw(self):
+        # 小さな点で描画
+        pyxel.pset(int(self.x), int(self.y), self.color)
+
+
+class Enemy:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.w = 8
+        self.h = 8
+        self.speed = 0.3
+        # 次に弾を撃つまでのフレーム数（ランダム）
+        self.shoot_timer = random.randint(30, 120)
+
+    def update(self):
+        # 少し下へ移動する（動きが欲しい場合）
+        self.y += self.speed
+        # カウントダウン
+        self.shoot_timer -= 1
+
+    def can_shoot(self):
+        return self.shoot_timer <= 0
+
+    def reset_shoot_timer(self):
+        self.shoot_timer = random.randint(30, 120)
+
+    def draw(self):
+        pyxel.rect(self.x, self.y, self.w, self.h, pyxel.COLOR_RED)
+
 class Title:
     def __init__(self):
         self.title = "Bullet Hell"
@@ -92,6 +135,8 @@ class Game:
         pyxel.load("myedit.pyxres")
         self.title = Title()
         self.player = Player()
+        self.enemies = []
+        self.bullets = []
         pyxel.run(self.update, self.draw)
     
     def update(self):
@@ -103,13 +148,48 @@ class Game:
         # ゲーム開始後、プレイヤーを更新
         if self.title.start:
             self.player.update()
+            # 敵生成（ランダム）
+            # 毎フレーム0.02の確率でスポーン（調整可）
+            if random.random() < 0.02 and len(self.enemies) < 120:
+                ex = random.randint(0, 160 - 8)
+                ey = random.randint(-40, 20)
+                self.enemies.append(Enemy(ex, ey))
+
+            # 敵更新・射撃
+            for e in self.enemies:
+                e.update()
+                if e.can_shoot():
+                    # 弾の初速度をランダム化（下向き中心）
+                    vx = random.uniform(-0.6, 0.6)
+                    vy = random.uniform(1.0, 2.0)
+                    bx = e.x + e.w / 2
+                    by = e.y + e.h
+                    self.bullets.append(Bullet(bx, by, vx, vy, color=8))
+                    e.reset_shoot_timer()
+
+            # 弾更新・削除（画面外）
+            alive_bullets = []
+            for b in self.bullets:
+                b.update()
+                if 0 <= b.x < 160 and 0 <= b.y < 240:
+                    alive_bullets.append(b)
+            self.bullets = alive_bullets
+            
+            # 敵は画面下に出たら削除
+            self.enemies = [e for e in self.enemies if e.y < 260]
     
     def draw(self):
         pyxel.cls(0)
         # ゲーム開始前はマップ0、開始後はマップ1を表示
         if self.title.start:
             pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
-            self.player.draw()  # プレイヤーを描画
+            # 敵と弾を描画
+            for e in self.enemies:
+                e.draw()
+            for b in self.bullets:
+                b.draw()
+            # プレイヤーを描画（最後に）
+            self.player.draw()
         else:
             pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
         
