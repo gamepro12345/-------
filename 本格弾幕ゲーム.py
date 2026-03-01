@@ -97,11 +97,19 @@ class Bullet:
         self.angvel = angvel
         self.radius = radius
         self.radial = radial
+        # keep approximate initial tangential speed so perceived speed stays stable
+        # if radius==0, use small value to derive tangential speed
+        init_r = self.radius if self.radius > 0.0 else 0.1
+        self.tangential_speed = self.angvel * init_r
 
     def update(self):
         if self.spiral:
-            self.angle += self.angvel
+            # increase radius
             self.radius += self.radial
+            # adjust angle so that tangential speed ~= constant
+            # angvel_effective = tangential_speed / radius
+            angvel_eff = self.tangential_speed / max(0.1, self.radius)
+            self.angle += angvel_eff
             ox, oy = self.origin
             self.x = ox + math.cos(self.angle) * self.radius
             self.y = oy + math.sin(self.angle) * self.radius
