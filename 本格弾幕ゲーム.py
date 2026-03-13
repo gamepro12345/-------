@@ -25,6 +25,9 @@ class Player:
         self.invincible = False
         self.invincible_timer = 0
         self.invincible_duration = 60  # frames (at 30fps = 2 seconds)
+        # ヒットボックス（プレイヤーの中央のみを当たり判定にするサイズ）
+        # 小さめにすると弾を避けやすくなる。必要なら値を調整してください。
+        self.hitbox_size = 4
 
     def is_wall(self, x, y):
         # 画面外チェック
@@ -95,6 +98,17 @@ class Player:
     def start_invincible(self, duration=None):
         self.invincible = True
         self.invincible_timer = duration if duration is not None else self.invincible_duration
+
+    def get_hitbox(self):
+        """プレイヤーの中央に基づく小さな当たり判定矩形を返す: (x0,y0,x1,y1)"""
+        s = max(1, int(getattr(self, 'hitbox_size', 4)))
+        cx = self.x + self.width / 2
+        cy = self.y + self.height / 2
+        x0 = cx - s / 2
+        y0 = cy - s / 2
+        x1 = x0 + s
+        y1 = y0 + s
+        return x0, y0, x1, y1
 
 
 class Bullet:
@@ -176,7 +190,8 @@ class Enemy:
         self.speed = 0.3
         self.turned = False
         # 次に弾を撃つまでのフレーム数（ランダム）
-        self.shoot_timer = random.randint(30, 120)
+        # 初期射撃タイミングを短めにして開始直後に弾が出やすくする
+        self.shoot_timer = random.randint(10, 60)
 
     def update(self):
         # 少し下へ移動する（動きが欲しい場合）
@@ -238,10 +253,13 @@ class Game:
             self.player.update()
             # 敵生成（ランダム）
             # 画面上の敵を1体だけに制限
-            if random.random() < 0.005 and len(self.enemies) < 1:
+            if random.random() < 0.02 and len(self.enemies) < 1:
                 ex = random.randint(0, 160 - 8)
                 ey = random.randint(-40, 20)
-                self.enemies.append(Enemy(ex, ey))
+                e = Enemy(ex, ey)
+                # さらに短いタイマーをランダムに設定してすぐ撃つ可能性を上げる
+                e.shoot_timer = random.randint(5, 40)
+                self.enemies.append(e)
 
             # 敵更新・射撃
             for e in self.enemies:
@@ -281,11 +299,8 @@ class Game:
                     bx1 = bx0 + s
                     by1 = by0 + s
 
-                    # プレイヤー矩形
-                    px0 = self.player.x
-                    py0 = self.player.y
-                    px1 = px0 + self.player.width
-                    py1 = py0 + self.player.height
+                    # プレイヤーのヒットボックス（中央のみ、小さい矩形）
+                    px0, py0, px1, py1 = self.player.get_hitbox()
 
                     # 衝突判定（矩形重なり）
                     hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
