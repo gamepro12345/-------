@@ -189,6 +189,8 @@ class Enemy:
         self.h = 8
         self.speed = 0.3
         self.turned = False
+        # Uターンでスコア付与済みフラグ
+        self.turned_counted = False
         # 次に弾を撃つまでのフレーム数（ランダム）
         # 初期射撃タイミングを短めにして開始直後に弾が出やすくする
         self.shoot_timer = random.randint(10, 60)
@@ -240,6 +242,7 @@ class Game:
         self.player = Player()
         self.enemies = []
         self.bullets = []
+        self.score = 0
         pyxel.run(self.update, self.draw)
     
     def update(self):
@@ -264,6 +267,10 @@ class Game:
             # 敵更新・射撃
             for e in self.enemies:
                 e.update()
+                    # Uターンした瞬間にスコアを付与（1回だけ）
+                if getattr(e, 'turned', False) and not getattr(e, 'turned_counted', False):
+                        self.score += 100
+                        e.turned_counted = True
                 if e.can_shoot():
                     # 敵が一度に25発のらせん弾を放つ（大きさ固定5）
                     bx = e.x + e.w / 2
@@ -321,8 +328,14 @@ class Game:
                     alive_bullets.append(b)
                 self.bullets = alive_bullets
             
-            # 敵は画面外（上 or 下）に出たら削除
-            self.enemies = [e for e in self.enemies if -80 < e.y < 260]
+            # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
+            new_enemies = []
+            for e in self.enemies:
+                if -80 < e.y < 260:
+                    new_enemies.append(e)
+                else:
+                    self.score += 100
+            self.enemies = new_enemies
     
     def draw(self):
         pyxel.cls(0)
@@ -336,8 +349,9 @@ class Game:
                 b.draw()
             # プレイヤーを描画（最後に）
             self.player.draw()
-            # HP表示
-            pyxel.text(4, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
+            # 右側にHPとスコアを表示
+            pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
+            pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
             # Game Over 表示
             if self.title.gameover:
                 pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
