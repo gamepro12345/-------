@@ -363,6 +363,7 @@ class Game:
                     if getattr(b, 'special', False):
                         if not self.title.gameover:
                             self.score += 500
+                            self.player.hp += 1
                         continue
 
                     # 通常弾は当たったら消え、プレイヤーにダメージ
