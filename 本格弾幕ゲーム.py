@@ -113,7 +113,7 @@ class Player:
 
 class Bullet:
     def __init__(self, x, y, vx=0, vy=0, color=7, size=3,
-                 spiral=False, origin=None, angle=0.0, angvel=0.0, radius=0.0, radial=0.0):
+                 spiral=False, origin=None, angle=0.0, angvel=1.0, radius=1.0, radial=0.0):
         self.x = x
         self.y = y
         self.vx = vx
@@ -285,48 +285,14 @@ class Game:
                         # 少し個体差を入れるために角速度はわずかに変える
                         avel = angvel * random.uniform(0.8, 1.2)
                         # 初期半径を小さめにして外側へ伸ばす
+                        # increase bullet speed ~1.5x by scaling angular velocity and radial speed
                         self.bullets.append(
                             Bullet(bx, by, color=8, size=5, spiral=True,
-                                   origin=origin, angle=angle, angvel=avel, radius=2.0, radial=radial)
+                                   origin=origin, angle=angle, angvel=avel * 1.5, radius=2.0, radial=radial * 1.5)
                         )
                     e.reset_shoot_timer()
 
-                # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
-                alive_bullets = []
-                for b in self.bullets:
-                    b.update()
-                    # 画面外チェック
-                    if not (0 <= b.x < 160 and 0 <= b.y < 240):
-                        continue
-
-                    # 弾の矩形（中心ベース）を計算
-                    s = max(1, int(getattr(b, 'size', 1)))
-                    bx0 = b.x - s / 2
-                    by0 = b.y - s / 2
-                    bx1 = bx0 + s
-                    by1 = by0 + s
-
-                    # プレイヤーのヒットボックス（中央のみ、小さい矩形）
-                    px0, py0, px1, py1 = self.player.get_hitbox()
-
-                    # 衝突判定（矩形重なり）
-                    hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
-                    if hit:
-                        # 弾は当たったら消える
-                        if not self.title.gameover and not getattr(self.player, 'invincible', False):
-                            # ダメージ処理（無敵でなければ）
-                            self.player.hp -= 1
-                            if self.player.hp <= 0:
-                                self.player.hp = 0
-                                self.title.gameover = True
-                            else:
-                                # 無敵時間開始
-                                self.player.start_invincible()
-                        # 当たった弾は消える（aliveに追加しない）
-                        continue
-
-                    alive_bullets.append(b)
-                self.bullets = alive_bullets
+                # （弾の更新はループ外でまとめて行う）
             
             # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
             new_enemies = []
@@ -336,6 +302,42 @@ class Game:
                 else:
                     self.score += 100
             self.enemies = new_enemies
+            # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
+            alive_bullets = []
+            for b in self.bullets:
+                b.update()
+                # 画面外チェック
+                if not (0 <= b.x < 160 and 0 <= b.y < 240):
+                    continue
+
+                # 弾の矩形（中心ベース）を計算
+                s = max(1, int(getattr(b, 'size', 1)))
+                bx0 = b.x - s / 2
+                by0 = b.y - s / 2
+                bx1 = bx0 + s
+                by1 = by0 + s
+
+                # プレイヤーのヒットボックス（中央のみ、小さい矩形）
+                px0, py0, px1, py1 = self.player.get_hitbox()
+
+                # 衝突判定（矩形重なり）
+                hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
+                if hit:
+                    # 弾は当たったら消える
+                    if not self.title.gameover and not getattr(self.player, 'invincible', False):
+                        # ダメージ処理（無敵でなければ）
+                        self.player.hp -= 1
+                        if self.player.hp <= 0:
+                            self.player.hp = 0
+                            self.title.gameover = True
+                        else:
+                            # 無敵時間開始
+                            self.player.start_invincible()
+                    # 当たった弾は消える（aliveに追加しない）
+                    continue
+
+                alive_bullets.append(b)
+            self.bullets = alive_bullets
     
     def draw(self):
         pyxel.cls(0)
