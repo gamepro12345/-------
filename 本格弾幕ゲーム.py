@@ -244,6 +244,7 @@ class Game:
         self.enemies = []
         self.bullets = []
         self.score = 0
+        self.bgm_started = False
         pyxel.run(self.update, self.draw)
     
     def update(self):
@@ -251,6 +252,13 @@ class Game:
             pyxel.quit()
         
         self.title.update()
+        # ゲーム開始時にBGMを一度だけ再生
+        if self.title.start and not getattr(self, 'bgm_started', False):
+            try:
+                pyxel.playm(0, loop=True)
+            except Exception:
+                pass
+            self.bgm_started = True
         
         # ゲーム開始後、プレイヤーを更新
         if self.title.start:
