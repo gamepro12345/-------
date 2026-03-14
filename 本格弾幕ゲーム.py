@@ -255,6 +255,13 @@ class Game:
         # ゲーム開始後、プレイヤーを更新
         if self.title.start:
             self.player.update()
+            # テスト用: Gキーで緑の特別弾をスポーン
+            if pyxel.btnp(pyxel.KEY_G):
+                pbx = self.player.x + self.player.width / 2
+                pby = self.player.y + self.player.height / 2
+                self.bullets.append(
+                    Bullet(pbx, pby, vx=0, vy=-1, color=pyxel.COLOR_GREEN, size=6, spiral=False, special=True)
+                )
             # 敵生成（ランダム）
             # 画面上の敵を1体だけに制限
             if random.random() < 0.02 and len(self.enemies) < 1:
