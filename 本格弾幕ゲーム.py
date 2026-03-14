@@ -292,6 +292,14 @@ class Game:
                                    origin=origin, angle=angle, angvel=avel * 1.5, radius=2.0, radial=radial * 1.5)
                         )
                     e.reset_shoot_timer()
+                    # 稀に緑の特別弾を1つ生成（触れるとスコア+500）
+                    if random.random() < 0.08:
+                        s_angle = random.uniform(0, 2 * math.pi)
+                        s_avel = random.uniform(-0.06, 0.06)
+                        self.bullets.append(
+                            Bullet(bx, by, color=pyxel.COLOR_GREEN, size=6, spiral=True,
+                                   origin=origin, angle=s_angle, angvel=s_avel, radius=2.0, radial=0.6, special=True)
+                        )
 
                 # （弾の更新はループ外でまとめて行う）
             
@@ -324,17 +332,20 @@ class Game:
                 # 衝突判定（矩形重なり）
                 hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
                 if hit:
-                    # 弾は当たったら消える
+                    # 緑の特別弾は触れるとスコアを増やす（ダメージは与えない）
+                    if getattr(b, 'special', False):
+                        if not self.title.gameover:
+                            self.score += 500
+                        continue
+
+                    # 通常弾は当たったら消え、プレイヤーにダメージ
                     if not self.title.gameover and not getattr(self.player, 'invincible', False):
-                        # ダメージ処理（無敵でなければ）
                         self.player.hp -= 1
                         if self.player.hp <= 0:
                             self.player.hp = 0
                             self.title.gameover = True
                         else:
-                            # 無敵時間開始
                             self.player.start_invincible()
-                    # 当たった弾は消える（aliveに追加しない）
                     continue
 
                 alive_bullets.append(b)
