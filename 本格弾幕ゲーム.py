@@ -113,13 +113,14 @@ class Player:
 
 class Bullet:
     def __init__(self, x, y, vx=0, vy=0, color=7, size=3,
-                 spiral=False, origin=None, angle=0.0, angvel=1.0, radius=1.0, radial=0.0):
+                 spiral=False, origin=None, angle=0.0, angvel=1.0, radius=1.0, radial=0.0, special=False):
         self.x = x
         self.y = y
         self.vx = vx
         self.vy = vy
         self.color = color
         self.size = size
+        self.special = special
 
         # spiral motion
         self.spiral = spiral
