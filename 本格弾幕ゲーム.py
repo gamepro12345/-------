@@ -275,6 +275,18 @@ class Game:
             # 敵更新・射撃
             for e in self.enemies:
                 e.update()
+                # Uターンする前（少し手前）に一度だけ緑の特別弾を出す
+                if (not getattr(e, 'turned', False)) and e.y >= 100 and not getattr(e, 'special_shot', False):
+                    bx = e.x + e.w / 2
+                    by = e.y + e.h / 2
+                    origin = (bx, by)
+                    s_angle = random.uniform(0, 2 * math.pi)
+                    s_avel = random.uniform(-0.06, 0.06)
+                    self.bullets.append(
+                        Bullet(bx, by, color=pyxel.COLOR_GREEN, size=6, spiral=True,
+                               origin=origin, angle=s_angle, angvel=s_avel, radius=2.0, radial=0.6, special=True)
+                    )
+                    e.special_shot = True
                     # Uターンした瞬間にスコアを付与（1回だけ）
                 if getattr(e, 'turned', False) and not getattr(e, 'turned_counted', False):
                         self.score += 100
