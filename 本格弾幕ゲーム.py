@@ -361,7 +361,8 @@ class Game:
             # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
             new_enemies = []
             for e in self.enemies:
-                if -80 < e.y < 260:
+                if -80 < e.y < 260 or (e.x < pb.x < e.x + e.w and
+                                    e.y < pb.y < e.y + e.h):
                     new_enemies.append(e)
                 else:
                     self.score += 100
