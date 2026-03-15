@@ -430,26 +430,34 @@ class Game:
 # プレイヤー弾と敵の判定、敵削除、弾更新まで終わった後の続き
 
 # --- プレイヤー弾更新は終わったのでここから描画処理へ ---
-def draw(self):
-    pyxel.cls(0)
-    # ゲーム開始前はマップ0、開始後はマップ1を表示
-    if self.title.start:
-        pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
-        # 敵と弾を描画
-        for e in self.enemies:
-            e.draw()
-        for b in self.bullets:
-            b.draw()
-        # プレイヤーを描画（最後に）
-        self.player.draw()
-        # 右側にHPとスコアを表示
-        pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
-        pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
-        # Game Over 表示
-        if self.title.gameover:
-            pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
-    else:
-        pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
+# --- Gameクラス内 draw() メソッドの最後まで ---
+    def draw(self):
+        pyxel.cls(0)
+        # ゲーム開始前はマップ0、開始後はマップ1を表示
+        if self.title.start:
+            pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # ゲーム画面マップ
+            # 敵と弾を描画
+            for e in self.enemies:
+                e.draw()
+            for b in self.bullets:
+                b.draw()
+            # プレイヤーを描画（最後に）
+            self.player.draw()
+            # HPとスコアを右側に表示
+            pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
+            pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
+            # Game Over 表示
+            if self.title.gameover:
+                pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
+        else:
+            # タイトル画面
+            pyxel.bltm(0, 0, 0, 0, 0, 160, 240)
+            pyxel.text(20, 50, self.title.title, pyxel.COLOR_YELLOW)
+            pyxel.text(60, 100, "Push Enter!", pyxel.COLOR_WHITE)
     
-    # タイトル描画
-    self.title.draw()
+    # タイトル描画メソッドも呼ぶ（重複しても問題なし）
+
+
+# --- ゲーム実行 ---
+if __name__ == "__main__":
+    Game()
