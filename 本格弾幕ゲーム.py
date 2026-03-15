@@ -441,6 +441,8 @@ class Game:
                 e.draw()
             for b in self.bullets:
                 b.draw()
+            for pb in self.player_bullets:
+                pb.draw()
             # プレイヤーを描画（最後に）
             self.player.draw()
             # HPとスコアを右側に表示
