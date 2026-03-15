@@ -288,8 +288,9 @@ class Game:
 
                 self.player_bullets.append(
                     Bullet(bx, by, vx=0, vy=-4,
-                           color=pyxel.COLOR_GREEN, size=4)
+                           color=9, size=4)
                 )
+                
 
             # ★プレイヤー弾更新
             alive_pb = []
@@ -305,7 +306,7 @@ class Game:
                 ey = random.randint(-40, 20)
                 e = Enemy(ex, ey)
                 # さらに短いタイマーをランダムに設定してすぐ撃つ可能性を上げる
-                e.shoot_timer = random.randint(5, 40)
+                e.shoot_timer = random.randint(2, 20)
                 self.enemies.append(e)
 
             # 敵更新・射撃
