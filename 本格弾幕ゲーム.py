@@ -360,14 +360,19 @@ class Game:
             
             # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
             new_enemies = []
-            for e in self.enemies:
-                if -80 < e.y < 260:
+            for pb in self.player_bullets:
+
+                if (e.x < pb.x < e.x + e.w and
+                    e.y < pb.y < e.y + e.h):
+
+                    self.score += 200
+                    hit = True
+                    break
+
+                if not hit:
                     new_enemies.append(e)
-                elif (e.x < pb.x < e.x + e.w and
-                                    e.y < pb.y < e.y + e.h):
-                    new_enemies.append(e)
-                else:
-                    self.score += 100
+            new_enemies.append(e)
+
             self.enemies = new_enemies
             # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
             alive_bullets = []
