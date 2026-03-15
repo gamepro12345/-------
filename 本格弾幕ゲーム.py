@@ -359,86 +359,97 @@ class Game:
                 # （弾の更新はループ外でまとめて行う）
             
             # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
+            # プレイヤー弾と敵の当たり判定
+        if self.enemies:  # 敵がいる場合のみ処理
+            # --- プレイヤー弾と敵の当たり判定 ---
             new_enemies = []
-            for pb in self.player_bullets:
-
-                if (e.x < pb.x < e.x + e.w and
-                    e.y < pb.y < e.y + e.h):
-
-                    self.score += 200
-                    hit = True
-                    break
-
+            for e in self.enemies:
+                hit = False
+                for pb in self.player_bullets:
+                    # 弾が敵に当たったか（敵の矩形内）
+                    if (e.x < pb.x < e.x + e.w and
+                        e.y < pb.y < e.y + e.h):
+                        self.score += 200        # スコア加算
+                        hit = True
+                        self.player_bullets.remove(pb)  # 当たった弾は消す
+                        break
                 if not hit:
                     new_enemies.append(e)
-            new_enemies.append(e)
-
             self.enemies = new_enemies
-            # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
-            alive_bullets = []
-            for b in self.bullets:
-                b.update()
-                # 画面外チェック
-                if not (0 <= b.x < 160 and 0 <= b.y < 240):
+
+        # --- 敵は画面外（上 or 下）に出たら削除、スコア加算 ---
+        new_enemies = []
+        for e in self.enemies:
+            if -80 < e.y < 260:
+                new_enemies.append(e)
+            else:
+                self.score += 100
+        self.enemies = new_enemies
+
+# --- 弾更新・削除（画面外）およびプレイヤーとの当たり判定 ---
+        alive_bullets = []
+        for b in self.bullets:
+            b.update()
+            # 画面外チェック
+            if not (0 <= b.x < 160 and 0 <= b.y < 240):
+                continue
+
+            # 弾の矩形（中心ベース）
+            s = max(1, int(getattr(b, 'size', 1)))
+            bx0 = b.x - s / 2
+            by0 = b.y - s / 2
+            bx1 = bx0 + s
+            by1 = by0 + s
+
+            # プレイヤーのヒットボックス（中央のみ）
+            px0, py0, px1, py1 = self.player.get_hitbox()
+
+            # 衝突判定（矩形重なり）
+            hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
+            if hit:
+            # 緑の特別弾は触れるとスコアを増やす（ダメージは与えない）
+                if getattr(b, 'special', False):
+                    if not self.title.gameover:
+                        self.score += 500
+                        self.player.hp += 1
                     continue
 
-                # 弾の矩形（中心ベース）を計算
-                s = max(1, int(getattr(b, 'size', 1)))
-                bx0 = b.x - s / 2
-                by0 = b.y - s / 2
-                bx1 = bx0 + s
-                by1 = by0 + s
+                # 通常弾は当たったら消え、プレイヤーにダメージ
+                if not self.title.gameover and not getattr(self.player, 'invincible', False):
+                    self.player.hp -= 1
+                    if self.player.hp <= 0:
+                        self.player.hp = 0
+                    self.title.gameover = True
+                else:
+                    self.player.start_invincible()
+                continue
 
-                # プレイヤーのヒットボックス（中央のみ、小さい矩形）
-                px0, py0, px1, py1 = self.player.get_hitbox()
+            alive_bullets.append(b)
 
-                # 衝突判定（矩形重なり）
-                hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
-                if hit:
-                    # 緑の特別弾は触れるとスコアを増やす（ダメージは与えない）
-                    if getattr(b, 'special', False):
-                        if not self.title.gameover:
-                            self.score += 500
-                            self.player.hp += 1
-                        continue
+        self.bullets = alive_bullets
+# プレイヤー弾と敵の判定、敵削除、弾更新まで終わった後の続き
 
-                    # 通常弾は当たったら消え、プレイヤーにダメージ
-                    if not self.title.gameover and not getattr(self.player, 'invincible', False):
-                        self.player.hp -= 1
-                        if self.player.hp <= 0:
-                            self.player.hp = 0
-                            self.title.gameover = True
-                        else:
-                            self.player.start_invincible()
-                    continue
-
-                alive_bullets.append(b)
-            self.bullets = alive_bullets
+# --- プレイヤー弾更新は終わったのでここから描画処理へ ---
+def draw(self):
+    pyxel.cls(0)
+    # ゲーム開始前はマップ0、開始後はマップ1を表示
+    if self.title.start:
+        pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
+        # 敵と弾を描画
+        for e in self.enemies:
+            e.draw()
+        for b in self.bullets:
+            b.draw()
+        # プレイヤーを描画（最後に）
+        self.player.draw()
+        # 右側にHPとスコアを表示
+        pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
+        pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
+        # Game Over 表示
+        if self.title.gameover:
+            pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
+    else:
+        pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
     
-    def draw(self):
-        pyxel.cls(0)
-        # ゲーム開始前はマップ0、開始後はマップ1を表示
-        if self.title.start:
-            pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
-            # 敵と弾を描画
-            for e in self.enemies:
-                e.draw()
-            for pb in self.player_bullets:
-                pb.draw()
-            for b in self.bullets:
-                b.draw()
-            # プレイヤーを描画（最後に）
-            self.player.draw()
-            # 右側にHPとスコアを表示
-            pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
-            pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
-            # Game Over 表示
-            if self.title.gameover:
-                pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
-        else:
-            pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
-        
-        self.title.draw()
-
-if __name__ == "__main__":
-    Game()
+    # タイトル描画
+    self.title.draw()
