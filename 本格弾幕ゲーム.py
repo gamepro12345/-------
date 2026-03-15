@@ -417,9 +417,8 @@ class Game:
                 # 通常弾は当たったら消え、プレイヤーにダメージ
                 if not self.title.gameover and not getattr(self.player, 'invincible', False):
                     self.player.hp -= 1
-                    if self.player.hp <= 0:
-                        self.player.hp = 0
-                    self.title.gameover = True
+                    if self.player.hp == 0:
+                        self.title.gameover = True
                 else:
                     self.player.start_invincible()
                 continue
