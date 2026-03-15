@@ -181,6 +181,8 @@ class Bullet:
             pyxel.pset(int(self.x), int(self.y), self.color)
         else:
             pyxel.rect(px, py, s, s, self.color)
+
+
 class Enemy:
     def __init__(self, x, y):
 
@@ -220,12 +222,16 @@ class Title:
         self.title = "Bullet Hell"
         self.start = False
         self.gameover = False
+        self.clear = False
+        self.time = 0
 
     def update(self):
+
         if pyxel.btnp(pyxel.KEY_RETURN):
             self.start = True
 
     def draw(self):
+
         if not self.start:
             pyxel.bltm(0, 0, 0, 0, 0, 160, 240)
             pyxel.text(20, 50, self.title, pyxel.COLOR_YELLOW)
@@ -236,18 +242,22 @@ class Game:
     def __init__(self):
 
         pyxel.init(160, 240, title="Bullet Hell", fps=30)
+
         pyxel.load("myedit.pyxres")
 
         self.title = Title()
+
         self.player = Player()
 
         self.enemies = []
+
         self.bullets = []
 
-        # ★追加
+        # ★追加：プレイヤー弾
         self.player_bullets = []
 
         self.score = 0
+
         self.bgm_started = False
 
         pyxel.run(self.update, self.draw)
@@ -259,11 +269,18 @@ class Game:
 
         self.title.update()
 
+        if self.title.start and not getattr(self, 'bgm_started', False):
+            try:
+                pyxel.playm(0, loop=True)
+            except Exception:
+                pass
+            self.bgm_started = True
+
         if self.title.start:
 
             self.player.update()
 
-            # ★プレイヤー弾
+            # ★Zキーで弾
             if pyxel.btnp(pyxel.KEY_Z):
 
                 bx = self.player.x + self.player.width / 2
@@ -274,72 +291,146 @@ class Game:
                            color=pyxel.COLOR_GREEN, size=4)
                 )
 
-            # ★弾更新
+            # ★プレイヤー弾更新
             alive_pb = []
             for pb in self.player_bullets:
                 pb.update()
                 if pb.y > -20:
                     alive_pb.append(pb)
             self.player_bullets = alive_pb
-
-            # 敵生成
+            # 敵生成（ランダム）
+            # 画面上の敵を1体だけに制限
             if random.random() < 0.02 and len(self.enemies) < 1:
                 ex = random.randint(0, 160 - 8)
                 ey = random.randint(-40, 20)
-                self.enemies.append(Enemy(ex, ey))
+                e = Enemy(ex, ey)
+                # さらに短いタイマーをランダムに設定してすぐ撃つ可能性を上げる
+                e.shoot_timer = random.randint(5, 40)
+                self.enemies.append(e)
 
+            # 敵更新・射撃
             for e in self.enemies:
                 e.update()
+                # Uターンする前（少し手前）に一度だけ緑の特別弾を出す
+                if (not getattr(e, 'turned', False)) and e.y >= 100 and not getattr(e, 'special_shot', False):
+                    bx = e.x + e.w / 2
+                    by = e.y + e.h / 2
+                    origin = (bx, by)
+                    s_angle = random.uniform(0, 2 * math.pi)
+                    s_avel = random.uniform(-0.06, 0.06)
+                    self.bullets.append(
+                        Bullet(bx, by, color=pyxel.COLOR_GREEN, size=6, spiral=True,
+                               origin=origin, angle=s_angle, angvel=s_avel, radius=2.0, radial=0.6, special=True)
+                    )
+                    e.special_shot = True
+                    # Uターンした瞬間にスコアを付与（1回だけ）
+                if getattr(e, 'turned', False) and not getattr(e, 'turned_counted', False):
+                        self.score += 100
+                        e.turned_counted = True
+                if e.can_shoot():
+                    # 敵が一度に25発のらせん弾を放つ（大きさ固定5）
+                    bx = e.x + e.w / 2
+                    by = e.y + e.h / 2
+                    origin = (bx, by)
+                    base_angle = random.uniform(0, 2 * math.pi)
+                    angvel = random.uniform(-0.04, 0.04)
+                    radial = 0.3
+                    count = 25
+                    for i in range(count):
+                        angle = base_angle + (2 * math.pi * i) / count
+                        # 少し個体差を入れるために角速度はわずかに変える
+                        avel = angvel * random.uniform(0.8, 1.2)
+                        # 初期半径を小さめにして外側へ伸ばす
+                        # increase bullet speed ~1.5x by scaling angular velocity and radial speed
+                        self.bullets.append(
+                            Bullet(bx, by, color=8, size=5, spiral=True,
+                                   origin=origin, angle=angle, angvel=avel * 1.5, radius=2.0, radial=radial * 1.5)
+                        )
+                    e.reset_shoot_timer()
+                    # 稀に緑の特別弾を1つ生成（触れるとスコア+500）
+                    if random.random() < 0.08:
+                        s_angle = random.uniform(0, 2 * math.pi)
+                        s_avel = random.uniform(-0.06, 0.06)
+                        self.bullets.append(
+                            Bullet(bx, by, color=pyxel.COLOR_GREEN, size=6, spiral=True,
+                                   origin=origin, angle=s_angle, angvel=s_avel, radius=2.0, radial=0.6, special=True)
+                        )
 
-            # ★敵とプレイヤー弾の当たり判定
+                # （弾の更新はループ外でまとめて行う）
+            
+            # 敵は画面外（上 or 下）に出たら削除。消えたときにスコアを付与
             new_enemies = []
-
             for e in self.enemies:
-
-                hit = False
-
-                for pb in self.player_bullets:
-
-                    if (e.x < pb.x < e.x + e.w and
-                        e.y < pb.y < e.y + e.h):
-
-                        self.score += 200
-                        hit = True
-                        break
-
-                if not hit:
+                if -80 < e.y < 260:
                     new_enemies.append(e)
-
+                else:
+                    self.score += 100
             self.enemies = new_enemies
+            # 弾更新・削除（画面外）およびプレイヤーとの当たり判定
+            alive_bullets = []
+            for b in self.bullets:
+                b.update()
+                # 画面外チェック
+                if not (0 <= b.x < 160 and 0 <= b.y < 240):
+                    continue
 
+                # 弾の矩形（中心ベース）を計算
+                s = max(1, int(getattr(b, 'size', 1)))
+                bx0 = b.x - s / 2
+                by0 = b.y - s / 2
+                bx1 = bx0 + s
+                by1 = by0 + s
+
+                # プレイヤーのヒットボックス（中央のみ、小さい矩形）
+                px0, py0, px1, py1 = self.player.get_hitbox()
+
+                # 衝突判定（矩形重なり）
+                hit = not (bx1 < px0 or bx0 > px1 or by1 < py0 or by0 > py1)
+                if hit:
+                    # 緑の特別弾は触れるとスコアを増やす（ダメージは与えない）
+                    if getattr(b, 'special', False):
+                        if not self.title.gameover:
+                            self.score += 500
+                            self.player.hp += 1
+                        continue
+
+                    # 通常弾は当たったら消え、プレイヤーにダメージ
+                    if not self.title.gameover and not getattr(self.player, 'invincible', False):
+                        self.player.hp -= 1
+                        if self.player.hp <= 0:
+                            self.player.hp = 0
+                            self.title.gameover = True
+                        else:
+                            self.player.start_invincible()
+                    continue
+
+                alive_bullets.append(b)
+            self.bullets = alive_bullets
+    
     def draw(self):
-
         pyxel.cls(0)
-
+        # ゲーム開始前はマップ0、開始後はマップ1を表示
         if self.title.start:
-
-            pyxel.bltm(0, 0, 1, 0, 0, 160, 240)
-
+            pyxel.bltm(0, 0, 1, 0, 0, 160, 240)  # マップ番号1を表示（ゲーム画面）
+            # 敵と弾を描画
             for e in self.enemies:
                 e.draw()
-
-            for b in self.bullets:
-                b.draw()
-
-            # ★プレイヤー弾描画
             for pb in self.player_bullets:
                 pb.draw()
-
+            for b in self.bullets:
+                b.draw()
+            # プレイヤーを描画（最後に）
             self.player.draw()
-
+            # 右側にHPとスコアを表示
+            pyxel.text(110, 4, f"HP: {self.player.hp}/{self.player.max_hp}", pyxel.COLOR_WHITE)
             pyxel.text(110, 14, f"SCORE: {self.score}", pyxel.COLOR_YELLOW)
-
+            # Game Over 表示
+            if self.title.gameover:
+                pyxel.text(50, 110, "GAME OVER", pyxel.COLOR_RED)
         else:
-
-            pyxel.bltm(0, 0, 0, 0, 0, 160, 240)
-
+            pyxel.bltm(0, 0, 0, 0, 0, 160, 240)  # マップ番号0を表示（タイトル）
+        
         self.title.draw()
-
 
 if __name__ == "__main__":
     Game()
